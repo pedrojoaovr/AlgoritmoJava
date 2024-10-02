@@ -1,13 +1,17 @@
 import java.util.ArrayList;
 import java.util.List;
+import Enum.ItemConsumo;
+
 
 class Hospedagem {
     private String nomeResponsavel;
     private String dataFinal;
-    private List<String> consumos;
+    private String dataInicial;
+    private List<ItemConsumo> consumos;
 
-    public Hospedagem(String nomeResponsavel, String dataFinal) {
+    public Hospedagem(String nomeResponsavel, String dataInicial, String dataFinal) {
         this.nomeResponsavel = nomeResponsavel;
+        this.dataInicial = dataInicial;
         this.dataFinal = dataFinal;
         this.consumos = new ArrayList<>();
     }
@@ -20,11 +24,15 @@ class Hospedagem {
         return dataFinal;
     }
 
-    public void adicionarConsumo(String item) {
+    public String getDataInicial() {
+        return dataInicial;
+    }
+
+    public void adicionarConsumo(ItemConsumo item) {
         consumos.add(item);
     }
 
-    public List<String> getConsumos() {
+    public List<ItemConsumo> getConsumos() {
         return consumos;
     }
 }

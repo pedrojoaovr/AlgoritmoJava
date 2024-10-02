@@ -3,6 +3,9 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import Enum.TipoQuarto;
+import Enum.ItemConsumo;
+
 
 public class Hotel {
     private static final int TOTAL_QUARTOS = 20;
@@ -12,112 +15,126 @@ public class Hotel {
     public Hotel() {
         quartos = new ArrayList<>();
         for (int i = 1; i <= TOTAL_QUARTOS; i++) {
-            String tipo = (i <= 10) ? "individual" : (i <= 15) ? "acompanhante" : "criança";
+            TipoQuarto tipo = (i <= 10) ? TipoQuarto.INDIVIDUAL : (i <= 15) ? TipoQuarto.ACOMPANHANTE : TipoQuarto.CRIANCA;
             quartos.add(new Quarto(i, tipo));
         }
     }
 
-    public Quarto realizarCheckIn(String nomeResponsavel, String tipoQuarto, String dataFinal) {
+    public Quarto realizarCheckIn(String nomeResponsavel, TipoQuarto tipoQuarto, String dataInicial, String dataFinal) {
         for (Quarto quarto : quartos) {
-            if (!quarto.isOcupado() && quarto.getTipo().equals(tipoQuarto)) {
-                Hospedagem hospedagem = new Hospedagem(nomeResponsavel, dataFinal);
+            if (!quarto.isOcupado() && quarto.getTipo() == tipoQuarto) {
+                Hospedagem hospedagem = new Hospedagem(nomeResponsavel, dataInicial, dataFinal);
                 quarto.ocupar(hospedagem);
-                System.out.println("-------------------");
-                System.out.println("Voucher:");
-                System.out.println("Hotel: " + NOME_HOTEL);
-                System.out.println("Quarto: " + quarto.getNumero());
-                System.out.println("Tipo de Quarto: " + quarto.getTipo());
-                System.out.println("Responsável: " + nomeResponsavel);
-                System.out.println("Período: Até " + hospedagem.getDataFinal());
-                System.out.println("-------------------");
+                gerarVoucher(nomeResponsavel, quarto, hospedagem);
                 return quarto;
             }
         }
-        System.out.println("Desculpe, não há disponibilidade de quartos para o tipo solicitado.");
-        return null;
+        throw new IllegalStateException("Não há disponibilidade de quartos para o tipo " + tipoQuarto);
     }
 
-    public void realizarCheckOut(Quarto quarto, String dataFinal) {
+
+
+    public void realizarCheckOut(Quarto quarto, String dataCheckOut) {
         if (quarto.isOcupado()) {
             Hospedagem hospedagem = quarto.getHospedagem();
 
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-            LocalDate dataInicial = LocalDate.now();
-            LocalDate dataFim = LocalDate.parse(hospedagem.getDataFinal(), formatter);
-            long diasHospedagem = ChronoUnit.DAYS.between(dataInicial, dataFim);
+            long diasHospedagem = calcularDiarias(hospedagem, dataCheckOut);
+            int valorDiarias = calcularValorDiarias(quarto.getTipo(), diasHospedagem);
+            int valorConsumos = calcularValorConsumos(hospedagem);
 
-            int valorDiaria = 0;
+            int valorTotal = valorDiarias + valorConsumos;
 
-            switch (quarto.getTipo()) {
-                case "individual":
-                    valorDiaria = 30;
-                    break;
-                case "acompanhante":
-                    valorDiaria = 50;
-                    break;
-                case "criança":
-                    valorDiaria = 80;
-                    break;
-            }
-
-            int valorTotalHospedagem = (int) diasHospedagem * valorDiaria;
-            int valorConsumo = 0;
-
-            for (String consumo : hospedagem.getConsumos()) {
-                switch (consumo) {
-                    case "água":
-                        valorConsumo += 5;
-                        break;
-                    case "refrigerante":
-                        valorConsumo += 8;
-                        break;
-                    case "cerveja":
-                        valorConsumo += 10;
-                        break;
-                }
-            }
-
-            valorTotalHospedagem += valorConsumo;
-
-            System.out.println("-------------------");
-            System.out.println("Recibo:");
-            System.out.println("Hotel: " + NOME_HOTEL);
-            System.out.println("Quarto: " + quarto.getNumero());
-            System.out.println("Tipo de Quarto: " + quarto.getTipo());
-            System.out.println("Responsável: " + hospedagem.getNomeResponsavel());
-            System.out.println("Período: Até " + hospedagem.getDataFinal());
-            System.out.println("Quantidade de Pernoites: " + diasHospedagem);
-            System.out.println("Consumos: " + hospedagem.getConsumos());
-            System.out.println("Valor Total: R$" + valorTotalHospedagem);
-            System.out.println("-------------------");
+            gerarRecibo(quarto, hospedagem, diasHospedagem, valorTotal);
 
             quarto.desocupar();
         } else {
-            System.out.println("O quarto não está ocupado.");
+            throw new IllegalStateException("Erro: O quarto " + quarto.getNumero() + " não está ocupado.");
         }
     }
+
+
+
+    private long calcularDiarias(Hospedagem hospedagem, String dataCheckOut) {
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        LocalDate dataInicial = LocalDate.parse(hospedagem.getDataInicial(), formatter);
+        LocalDate dataFimReal = LocalDate.parse(dataCheckOut, formatter);
+
+        return ChronoUnit.DAYS.between(dataInicial, dataFimReal);
+    }
+
+
+    private int calcularValorDiarias(TipoQuarto tipoQuarto, long dias) {
+        return (int) dias * tipoQuarto.getValorDiaria();
+    }
+
+    private int calcularValorConsumos(Hospedagem hospedagem) {
+        int valorConsumo = 0;
+        for (ItemConsumo consumo : hospedagem.getConsumos()) {
+            valorConsumo += consumo.getValor();
+        }
+        return valorConsumo;
+    }
+
+    private void gerarRecibo(Quarto quarto, Hospedagem hospedagem, long diasHospedagem, int valorTotal) {
+        System.out.println("-------------------");
+        System.out.println("Recibo:");
+        System.out.println("Hotel: " + NOME_HOTEL);
+        System.out.println("Quarto: " + quarto.getNumero());
+        System.out.println("Tipo de Quarto: " + quarto.getTipo());
+        System.out.println("Responsável: " + hospedagem.getNomeResponsavel());
+        System.out.println("Período: De " + hospedagem.getDataInicial() + " até " + hospedagem.getDataFinal());
+        System.out.println("Dias Hospedados: " + diasHospedagem);
+        System.out.println("Consumos: " + hospedagem.getConsumos());
+        System.out.println("Valor Total: R$" + valorTotal);
+        System.out.println("-------------------");
+    }
+
+
+
+    private void gerarVoucher(String nomeResponsavel, Quarto quarto, Hospedagem hospedagem) {
+        System.out.println("-------------------");
+        System.out.println("Voucher:");
+        System.out.println("Hotel: " + NOME_HOTEL);
+        System.out.println("Quarto: " + quarto.getNumero());
+        System.out.println("Tipo de Quarto: " + quarto.getTipo());
+        System.out.println("Responsável: " + nomeResponsavel);
+        System.out.println("Período: De " + hospedagem.getDataInicial() + " até " + hospedagem.getDataFinal());
+        System.out.println("-------------------");
+    }
+
 
     public static void main(String[] args) {
         Hotel hotel = new Hotel();
 
-        Quarto quarto1 = hotel.realizarCheckIn("João Pedro Vilar", "individual", "31/08/2024");
-        Quarto quarto2 = hotel.realizarCheckIn("Helena Cortes", "acompanhante", "01/09/2024");
+        try {
+            Quarto quarto1 = hotel.realizarCheckIn("João Pedro Vilar", TipoQuarto.INDIVIDUAL, "25/08/2024", "31/08/2024");
+            Quarto quarto2 = hotel.realizarCheckIn("Helena Cortes", TipoQuarto.ACOMPANHANTE, "27/08/2024", "01/09/2024");
 
-        if (quarto1 != null) {
-            quarto1.getHospedagem().adicionarConsumo("água");
-            quarto1.getHospedagem().adicionarConsumo("cerveja");
-        }
+            if (quarto1 != null) {
+                quarto1.getHospedagem().adicionarConsumo(ItemConsumo.AGUA);
+                quarto1.getHospedagem().adicionarConsumo(ItemConsumo.CERVEJA);
+            }
 
-        if (quarto2 != null) {
-            quarto2.getHospedagem().adicionarConsumo("refrigerante");
-        }
+            if (quarto2 != null) {
+                quarto2.getHospedagem().adicionarConsumo(ItemConsumo.REFRIGERANTE);
+            }
 
-        if (quarto1 != null) {
-            hotel.realizarCheckOut(quarto1, "31/08/2024");
-        }
+            if (quarto1 != null) {
+                hotel.realizarCheckOut(quarto1, "31/08/2024");
+            }
 
-        if (quarto2 != null) {
-            hotel.realizarCheckOut(quarto2, "01/09/2024");
+            if (quarto2 != null) {
+                hotel.realizarCheckOut(quarto2, "01/09/2024");
+            }
+
+        } catch (IllegalStateException e) {
+            System.out.println("Erro: " + e.getMessage());
+        } catch (Exception e) {
+            System.out.println("Erro inesperado: " + e.getMessage());
         }
     }
+
+
+
+
 }

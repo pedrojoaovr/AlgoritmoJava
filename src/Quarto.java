@@ -1,41 +1,42 @@
 import java.util.ArrayList;
 import java.util.List;
+import Enum.TipoQuarto;
+
 
 class Quarto {
     private int numero;
-    private String tipo;
-    private boolean ocupado;
+    private TipoQuarto tipo;
     private Hospedagem hospedagem;
 
-    public Quarto(int numero, String tipo) {
+    public Quarto(int numero, TipoQuarto tipo) {
         this.numero = numero;
         this.tipo = tipo;
-        this.ocupado = false;
+        this.hospedagem = null;
     }
 
     public int getNumero() {
         return numero;
     }
 
-    public String getTipo() {
+    public TipoQuarto getTipo() {
         return tipo;
     }
 
     public boolean isOcupado() {
-        return ocupado;
+        return hospedagem != null;
     }
 
     public void ocupar(Hospedagem hospedagem) {
         this.hospedagem = hospedagem;
-        this.ocupado = true;
     }
 
     public void desocupar() {
         this.hospedagem = null;
-        this.ocupado = false;
     }
 
     public Hospedagem getHospedagem() {
         return hospedagem;
     }
 }
+
+
